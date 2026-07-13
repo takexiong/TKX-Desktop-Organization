@@ -44,15 +44,24 @@ public static class SizeHelper
     /// <summary>左右相邻图标之间的间距（DIP）。</summary>
     public const int IconGap = 10;
 
-    /// <summary>图标下方名称区域固定高度（约两行文字）。</summary>
-    public const int LabelHeight = 60;
-
     public static int GetIconPixels(IconSizeMode mode) => mode switch
     {
         IconSizeMode.Small => 32,
         IconSizeMode.Large => 64,
         _ => 48
     };
+
+    /// <summary>名称字号。</summary>
+    public static double GetLabelFontSize(IconSizeMode mode) =>
+        mode == IconSizeMode.Small ? 10.0 : 11.0;
+
+    /// <summary>正常行距下，两行名称所需高度。</summary>
+    public static double GetLabelAreaHeight(IconSizeMode mode)
+    {
+        var fontSize = GetLabelFontSize(mode);
+        var lineHeight = fontSize + 3; // 接近正常行距，略留一点间距
+        return lineHeight * 2;
+    }
 
     public static string ToDisplay(IconSizeMode mode) => mode switch
     {
