@@ -1,5 +1,7 @@
-﻿using System.Windows;
+﻿using System.Diagnostics;
+using System.Windows;
 using System.Windows.Input;
+using System.Windows.Navigation;
 using System.Windows.Threading;
 using DesktopOrganizer.Models;
 using DesktopOrganizer.Services;
@@ -140,6 +142,29 @@ public partial class MainWindow : Window
         {
             _updateDialogOpen = false;
         }
+    }
+
+    private void PromoLink_RequestNavigate(object sender, RequestNavigateEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = e.Uri.AbsoluteUri,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                this,
+                $"无法打开链接：\n{ex.Message}",
+                "塔克熊桌面整理工具",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+
+        e.Handled = true;
     }
 
     private static string FormatVersion(Version v) =>
