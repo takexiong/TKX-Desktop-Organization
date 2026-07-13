@@ -97,12 +97,8 @@ public partial class MainWindow : Window
         {
             if (!silent)
             {
-                MessageBox.Show(
-                    this,
-                    $"检查更新失败：\n{ex.Message}\n\n常见原因是无法访问 GitHub。可到下面地址手动下载：\nhttps://github.com/takexiong/TKX-Desktop-Organization/releases",
-                    "塔克熊桌面整理工具",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                var dialog = new UpdateFailDialog(ex.Message) { Owner = this };
+                dialog.ShowDialog();
             }
         }
     }
