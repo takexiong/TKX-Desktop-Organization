@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
@@ -11,7 +12,6 @@ namespace DesktopOrganizer.Services;
 
 public static class UpdateService
 {
-    private static readonly HttpClient Http = CreateClient();
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -45,8 +45,9 @@ public static class UpdateService
         var url =
             $"https://api.github.com/repos/{UpdateSettings.GitHubOwner}/{UpdateSettings.GitHubRepo}/releases/latest";
 
-        using var response = await Http.GetAsync(url, ct).ConfigureAwait(false);
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        using var http = CreateClient();
+        using var response = await http.GetAsync(url, ct).ConfigureAwait(false);
+        if (response.StatusCode == HttpStatusCode.NotFound)
             return null;
 
         response.EnsureSuccessStatusCode();
@@ -88,7 +89,8 @@ public static class UpdateService
         IProgress<double>? progress = null,
         CancellationToken ct = default)
     {
-        using var response = await Http.GetAsync(
+        using var http = CreateClient();
+        using var response = await http.GetAsync(
                 update.DownloadUrl,
                 HttpCompletionOption.ResponseHeadersRead,
                 ct)
@@ -169,14 +171,71 @@ public static class UpdateService
         });
     }
 
+    /// <summary>
+    /// 每次新建客户端，以便跟随当前系统代理 / 环境变量代理（Clash 等开启后再检查也能生效）。
+    /// </summary>
     private static HttpClient CreateClient()
     {
-        var client = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
+        var handler = new HttpClientHandler
+        {
+            UseProxy = true,
+            Proxy = ResolveProxy(),
+            DefaultProxyCredentials = CredentialCache.DefaultCredentials,
+            AutomaticDecompression = DecompressionMethods.All
+        };
+
+        var client = new HttpClient(handler) { Timeout = TimeSpan.FromMinutes(5) };
         client.DefaultRequestHeaders.UserAgent.Add(
             new ProductInfoHeaderValue("DesktopOrganizer", CurrentVersionText));
         client.DefaultRequestHeaders.Accept.Add(
             new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         return client;
+    }
+
+    /// <summary>
+    /// 优先读 HTTPS_PROXY / HTTP_PROXY / ALL_PROXY，否则用 Windows 系统代理（与浏览器系统代理一致）。
+    /// </summary>
+    private static IWebProxy ResolveProxy()
+    {
+        var envProxy =
+            FirstNonEmpty(
+                Environment.GetEnvironmentVariable("HTTPS_PROXY"),
+                Environment.GetEnvironmentVariable("https_proxy"),
+                Environment.GetEnvironmentVariable("HTTP_PROXY"),
+                Environment.GetEnvironmentVariable("http_proxy"),
+                Environment.GetEnvironmentVariable("ALL_PROXY"),
+                Environment.GetEnvironmentVariable("all_proxy"));
+
+        if (!string.IsNullOrWhiteSpace(envProxy))
+        {
+            try
+            {
+                var uri = NormalizeProxyUri(envProxy);
+                return new WebProxy(uri)
+                {
+                    Credentials = CredentialCache.DefaultCredentials,
+                    BypassProxyOnLocal = true
+                };
+            }
+            catch
+            {
+                // 环境变量格式异常时回退系统代理
+            }
+        }
+
+        // null = 使用 HttpClient 默认系统代理（Internet 选项 / 系统代理）
+        return HttpClient.DefaultProxy;
+    }
+
+    private static string? FirstNonEmpty(params string?[] values) =>
+        values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
+
+    private static Uri NormalizeProxyUri(string value)
+    {
+        var text = value.Trim().Trim('"', '\'');
+        if (!text.Contains("://", StringComparison.Ordinal))
+            text = "http://" + text;
+        return new Uri(text);
     }
 
     private static GitHubAsset? FindAsset(List<GitHubAsset>? assets)
@@ -201,7 +260,6 @@ public static class UpdateService
         if (text.StartsWith('v') || text.StartsWith('V'))
             text = text[1..];
 
-        // 允许 1.0.1 或 1.0.1.0
         if (!Version.TryParse(text, out var parsed))
             return false;
 
