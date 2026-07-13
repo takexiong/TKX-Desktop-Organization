@@ -1,0 +1,12 @@
+{
+  "version": "1.0.4",
+  "tag": "v1.0.4",
+  "title": "v1.0.4 塔克熊桌面整理工具",
+  "notes": "新增广告推广区（抖音/B站/游戏模组链接与交流群）；多通道更新；名称行距与代理支持。",
+  "downloadUrl": "https://github.com/takexiong/TKX-Desktop-Organization/releases/download/v1.0.4/TakexiongDesktopOrganizer.exe",
+  "mirrors": [
+    "https://ghfast.top/https://github.com/takexiong/TKX-Desktop-Organization/releases/download/v1.0.4/TakexiongDesktopOrganizer.exe",
+    "https://gh-proxy.com/https://github.com/takexiong/TKX-Desktop-Organization/releases/download/v1.0.4/TakexiongDesktopOrganizer.exe"
+  ],
+  "htmlUrl": "https://github.com/takexiong/TKX-Desktop-Organization/releases/tag/v1.0.4"
+}
