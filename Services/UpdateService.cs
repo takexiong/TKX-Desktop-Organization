@@ -6,6 +6,7 @@ using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using DesktopOrganizer.Models;
 
 namespace DesktopOrganizer.Services;
@@ -15,7 +16,9 @@ public static class UpdateService
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        ReadCommentHandling = JsonCommentHandling.Skip,
+        AllowTrailingCommas = true
     };
 
     public static Version CurrentVersion =>
@@ -33,54 +36,43 @@ public static class UpdateService
     }
 
     public static bool IsConfigured =>
-        !string.IsNullOrWhiteSpace(UpdateSettings.GitHubOwner)
-        && !string.Equals(UpdateSettings.GitHubOwner, "CHANGE_ME", StringComparison.OrdinalIgnoreCase)
-        && !string.IsNullOrWhiteSpace(UpdateSettings.GitHubRepo);
+        UpdateSettings.ManifestUrls.Length > 0
+        || (!string.IsNullOrWhiteSpace(UpdateSettings.GitHubOwner)
+            && !string.Equals(UpdateSettings.GitHubOwner, "CHANGE_ME", StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrWhiteSpace(UpdateSettings.GitHubRepo));
 
     public static async Task<UpdateInfo?> CheckForUpdateAsync(CancellationToken ct = default)
     {
         if (!IsConfigured)
             return null;
 
-        var url =
-            $"https://api.github.com/repos/{UpdateSettings.GitHubOwner}/{UpdateSettings.GitHubRepo}/releases/latest";
-
         using var http = CreateClient();
-        using var response = await http.GetAsync(url, ct).ConfigureAwait(false);
-        if (response.StatusCode == HttpStatusCode.NotFound)
-            return null;
 
-        response.EnsureSuccessStatusCode();
-
-        await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-        var release = await JsonSerializer.DeserializeAsync<GitHubRelease>(stream, JsonOptions, ct)
-            .ConfigureAwait(false);
-
-        if (release is null || string.IsNullOrWhiteSpace(release.TagName))
-            return null;
-
-        if (!TryParseVersion(release.TagName, out var remoteVersion))
-            return null;
-
-        if (remoteVersion <= TrimVersion(CurrentVersion))
-            return null;
-
-        var asset = FindAsset(release.Assets);
-        if (asset is null || string.IsNullOrWhiteSpace(asset.BrowserDownloadUrl))
-            return null;
-
-        return new UpdateInfo
+        // 1) 国内友好：版本清单（jsDelivr / gitmirror / 日后可换 Gitee、OSS）
+        foreach (var manifestUrl in UpdateSettings.ManifestUrls)
         {
-            Version = remoteVersion,
-            TagName = release.TagName,
-            Title = string.IsNullOrWhiteSpace(release.Name) ? release.TagName : release.Name,
-            ReleaseNotes = string.IsNullOrWhiteSpace(release.Body)
-                ? "（无更新说明）"
-                : release.Body.Trim(),
-            DownloadUrl = asset.BrowserDownloadUrl,
-            AssetName = asset.Name ?? UpdateSettings.ReleaseAssetName,
-            HtmlUrl = release.HtmlUrl
-        };
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                var info = await TryReadManifestAsync(http, manifestUrl, ct).ConfigureAwait(false);
+                if (info is not null)
+                    return info;
+            }
+            catch
+            {
+                // 换下一个源
+            }
+        }
+
+        // 2) 兜底：GitHub Releases API
+        try
+        {
+            return await TryReadGitHubReleaseAsync(http, ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public static async Task DownloadAsync(
@@ -90,42 +82,26 @@ public static class UpdateService
         CancellationToken ct = default)
     {
         using var http = CreateClient();
-        using var response = await http.GetAsync(
-                update.DownloadUrl,
-                HttpCompletionOption.ResponseHeadersRead,
-                ct)
-            .ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
+        Exception? lastError = null;
 
-        var total = response.Content.Headers.ContentLength;
-        await using var input = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-        await using var output = new FileStream(
-            destinationPath,
-            FileMode.Create,
-            FileAccess.Write,
-            FileShare.None,
-            81920,
-            useAsync: true);
-
-        var buffer = new byte[81920];
-        long readTotal = 0;
-        int read;
-        while ((read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length), ct).ConfigureAwait(false)) > 0)
+        foreach (var url in BuildDownloadCandidates(update))
         {
-            await output.WriteAsync(buffer.AsMemory(0, read), ct).ConfigureAwait(false);
-            readTotal += read;
-            if (total is > 0)
-                progress?.Report(readTotal * 100.0 / total.Value);
-            else
-                progress?.Report(-1);
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                await DownloadFromUrlAsync(http, url, destinationPath, progress, ct).ConfigureAwait(false);
+                return;
+            }
+            catch (Exception ex)
+            {
+                lastError = ex;
+                TryDelete(destinationPath);
+            }
         }
 
-        progress?.Report(100);
+        throw lastError ?? new InvalidOperationException("没有可用的下载地址。");
     }
 
-    /// <summary>
-    /// 写出替换脚本并启动，调用方随后应退出进程。
-    /// </summary>
     public static void LaunchUpdater(string downloadedExePath)
     {
         var targetExe = Environment.ProcessPath
@@ -171,9 +147,175 @@ public static class UpdateService
         });
     }
 
-    /// <summary>
-    /// 每次新建客户端，以便跟随当前系统代理 / 环境变量代理（Clash 等开启后再检查也能生效）。
-    /// </summary>
+    private static async Task<UpdateInfo?> TryReadManifestAsync(
+        HttpClient http,
+        string manifestUrl,
+        CancellationToken ct)
+    {
+        using var response = await http.GetAsync(manifestUrl, ct).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+            return null;
+
+        await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+        var manifest = await JsonSerializer.DeserializeAsync<UpdateManifest>(stream, JsonOptions, ct)
+            .ConfigureAwait(false);
+
+        if (manifest is null || string.IsNullOrWhiteSpace(manifest.Version))
+            return null;
+
+        if (!TryParseVersion(manifest.Version, out var remoteVersion)
+            && !TryParseVersion(manifest.Tag ?? "", out remoteVersion))
+            return null;
+
+        if (remoteVersion <= TrimVersion(CurrentVersion))
+            return null;
+
+        var download = FirstNonEmpty(manifest.DownloadUrl, manifest.Url);
+        if (string.IsNullOrWhiteSpace(download))
+            return null;
+
+        var mirrors = (manifest.Mirrors ?? [])
+            .Where(u => !string.IsNullOrWhiteSpace(u))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return new UpdateInfo
+        {
+            Version = remoteVersion,
+            TagName = string.IsNullOrWhiteSpace(manifest.Tag) ? $"v{remoteVersion}" : manifest.Tag!,
+            Title = string.IsNullOrWhiteSpace(manifest.Title)
+                ? $"v{FormatVersion(remoteVersion)}"
+                : manifest.Title!,
+            ReleaseNotes = string.IsNullOrWhiteSpace(manifest.Notes)
+                ? "（无更新说明）"
+                : manifest.Notes!.Trim(),
+            DownloadUrl = download!,
+            AssetName = UpdateSettings.ReleaseAssetName,
+            HtmlUrl = manifest.HtmlUrl,
+            MirrorUrls = mirrors
+        };
+    }
+
+    private static async Task<UpdateInfo?> TryReadGitHubReleaseAsync(HttpClient http, CancellationToken ct)
+    {
+        var url =
+            $"https://api.github.com/repos/{UpdateSettings.GitHubOwner}/{UpdateSettings.GitHubRepo}/releases/latest";
+
+        using var response = await http.GetAsync(url, ct).ConfigureAwait(false);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+        var release = await JsonSerializer.DeserializeAsync<GitHubRelease>(stream, JsonOptions, ct)
+            .ConfigureAwait(false);
+
+        if (release is null || string.IsNullOrWhiteSpace(release.TagName))
+            return null;
+
+        if (!TryParseVersion(release.TagName, out var remoteVersion))
+            return null;
+
+        if (remoteVersion <= TrimVersion(CurrentVersion))
+            return null;
+
+        var asset = FindAsset(release.Assets);
+        if (asset is null || string.IsNullOrWhiteSpace(asset.BrowserDownloadUrl))
+            return null;
+
+        return new UpdateInfo
+        {
+            Version = remoteVersion,
+            TagName = release.TagName,
+            Title = string.IsNullOrWhiteSpace(release.Name) ? release.TagName : release.Name,
+            ReleaseNotes = string.IsNullOrWhiteSpace(release.Body)
+                ? "（无更新说明）"
+                : release.Body.Trim(),
+            DownloadUrl = asset.BrowserDownloadUrl,
+            AssetName = asset.Name ?? UpdateSettings.ReleaseAssetName,
+            HtmlUrl = release.HtmlUrl,
+            MirrorUrls = []
+        };
+    }
+
+    private static IEnumerable<string> BuildDownloadCandidates(UpdateInfo update)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        IEnumerable<string> Yield(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url) || !seen.Add(url))
+                yield break;
+            yield return url;
+        }
+
+        foreach (var u in Yield(update.DownloadUrl))
+            yield return u;
+
+        foreach (var mirror in update.MirrorUrls)
+        {
+            foreach (var u in Yield(mirror))
+                yield return u;
+        }
+
+        // 对 GitHub 直链自动套镜像前缀
+        if (IsGitHubDownloadUrl(update.DownloadUrl))
+        {
+            foreach (var prefix in UpdateSettings.GithubDownloadMirrors)
+            {
+                var mirrored = prefix.TrimEnd('/') + "/" + update.DownloadUrl;
+                foreach (var u in Yield(mirrored))
+                    yield return u;
+            }
+        }
+    }
+
+    private static bool IsGitHubDownloadUrl(string url) =>
+        url.Contains("github.com/", StringComparison.OrdinalIgnoreCase)
+        || url.Contains("githubusercontent.com/", StringComparison.OrdinalIgnoreCase);
+
+    private static async Task DownloadFromUrlAsync(
+        HttpClient http,
+        string url,
+        string destinationPath,
+        IProgress<double>? progress,
+        CancellationToken ct)
+    {
+        using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct)
+            .ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+
+        var total = response.Content.Headers.ContentLength;
+        await using var input = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+        await using var output = new FileStream(
+            destinationPath,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.None,
+            81920,
+            useAsync: true);
+
+        var buffer = new byte[81920];
+        long readTotal = 0;
+        int read;
+        while ((read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length), ct).ConfigureAwait(false)) > 0)
+        {
+            await output.WriteAsync(buffer.AsMemory(0, read), ct).ConfigureAwait(false);
+            readTotal += read;
+            if (total is > 0)
+                progress?.Report(readTotal * 100.0 / total.Value);
+            else
+                progress?.Report(-1);
+        }
+
+        progress?.Report(100);
+
+        // 过小基本是错误页，不是安装包
+        if (readTotal < 1024 * 1024)
+            throw new InvalidOperationException("下载内容过小，可能不是有效安装包。");
+    }
+
     private static HttpClient CreateClient()
     {
         var handler = new HttpClientHandler
@@ -181,20 +323,20 @@ public static class UpdateService
             UseProxy = true,
             Proxy = ResolveProxy(),
             DefaultProxyCredentials = CredentialCache.DefaultCredentials,
-            AutomaticDecompression = DecompressionMethods.All
+            AutomaticDecompression = DecompressionMethods.All,
+            AllowAutoRedirect = true
         };
 
         var client = new HttpClient(handler) { Timeout = TimeSpan.FromMinutes(5) };
         client.DefaultRequestHeaders.UserAgent.Add(
             new ProductInfoHeaderValue("DesktopOrganizer", CurrentVersionText));
         client.DefaultRequestHeaders.Accept.Add(
+            new MediaTypeWithQualityHeaderValue("application/json"));
+        client.DefaultRequestHeaders.Accept.Add(
             new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         return client;
     }
 
-    /// <summary>
-    /// 优先读 HTTPS_PROXY / HTTP_PROXY / ALL_PROXY，否则用 Windows 系统代理（与浏览器系统代理一致）。
-    /// </summary>
     private static IWebProxy ResolveProxy()
     {
         var envProxy =
@@ -210,8 +352,7 @@ public static class UpdateService
         {
             try
             {
-                var uri = NormalizeProxyUri(envProxy);
-                return new WebProxy(uri)
+                return new WebProxy(NormalizeProxyUri(envProxy))
                 {
                     Credentials = CredentialCache.DefaultCredentials,
                     BypassProxyOnLocal = true
@@ -219,16 +360,12 @@ public static class UpdateService
             }
             catch
             {
-                // 环境变量格式异常时回退系统代理
+                // ignore
             }
         }
 
-        // null = 使用 HttpClient 默认系统代理（Internet 选项 / 系统代理）
         return HttpClient.DefaultProxy;
     }
-
-    private static string? FirstNonEmpty(params string?[] values) =>
-        values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
 
     private static Uri NormalizeProxyUri(string value)
     {
@@ -256,6 +393,9 @@ public static class UpdateService
     private static bool TryParseVersion(string tag, out Version version)
     {
         version = new Version(0, 0, 0, 0);
+        if (string.IsNullOrWhiteSpace(tag))
+            return false;
+
         var text = tag.Trim();
         if (text.StartsWith('v') || text.StartsWith('V'))
             text = text[1..];
@@ -269,6 +409,39 @@ public static class UpdateService
 
     private static Version TrimVersion(Version v) =>
         new(v.Major, v.Minor, Math.Max(v.Build, 0), Math.Max(v.Revision, 0));
+
+    private static string FormatVersion(Version v) =>
+        v.Revision > 0
+            ? $"{v.Major}.{v.Minor}.{v.Build}.{v.Revision}"
+            : $"{v.Major}.{v.Minor}.{v.Build}";
+
+    private static string? FirstNonEmpty(params string?[] values) =>
+        values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+        catch
+        {
+            // ignore
+        }
+    }
+
+    private sealed class UpdateManifest
+    {
+        public string? Version { get; set; }
+        public string? Tag { get; set; }
+        public string? Title { get; set; }
+        public string? Notes { get; set; }
+        public string? DownloadUrl { get; set; }
+        public string? Url { get; set; }
+        public List<string>? Mirrors { get; set; }
+        public string? HtmlUrl { get; set; }
+    }
 
     private sealed class GitHubRelease
     {
