@@ -98,8 +98,9 @@ public partial class ZoneWindow : Window
         RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.HighQuality);
         RenderOptions.SetEdgeMode(image, EdgeMode.Unspecified);
 
-        var fontSize = Data.IconSize == IconSizeMode.Small ? 10.0 : 11.0;
-        var lineHeight = SizeHelper.LabelHeight / 2.0; // 固定两行，总高度约 60
+        var fontSize = SizeHelper.GetLabelFontSize(Data.IconSize);
+        var lineHeight = fontSize + 3;
+        var labelHeight = SizeHelper.GetLabelAreaHeight(Data.IconSize);
         var label = new TextBlock
         {
             Text = string.IsNullOrWhiteSpace(item.DisplayName)
@@ -113,7 +114,7 @@ public partial class ZoneWindow : Window
             LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
             Foreground = Brushes.White,
             Width = iconPx,
-            Height = SizeHelper.LabelHeight,
+            Height = labelHeight,
             Margin = new Thickness(0),
             VerticalAlignment = VerticalAlignment.Top,
             ToolTip = string.IsNullOrWhiteSpace(item.DisplayName)
@@ -128,12 +129,12 @@ public partial class ZoneWindow : Window
             Children = { image, label }
         };
 
-        // 左右各分一半间距；上下高度固定（名称区恒为两行/60），不随文字变长
+        // 左右间距固定；名称区刚好两行正常行距，不随文字变长撑开
         var side = SizeHelper.IconGap / 2.0;
         var border = new Border
         {
             Width = iconPx,
-            Height = iconPx + 6 + SizeHelper.LabelHeight,
+            Height = iconPx + 6 + labelHeight,
             Margin = new Thickness(side, 2, side, 2),
             Background = Brushes.Transparent,
             Cursor = Cursors.Hand,
