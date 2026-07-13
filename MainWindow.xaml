@@ -1,0 +1,139 @@
+﻿<Window x:Class="DesktopOrganizer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="桌面图标整理"
+        Height="440"
+        Width="420"
+        MinHeight="360"
+        MinWidth="360"
+        WindowStartupLocation="CenterScreen"
+        Background="#F4F7FB">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <DockPanel LastChildFill="True">
+                <TextBlock x:Name="VersionLabel"
+                           DockPanel.Dock="Right"
+                           VerticalAlignment="Bottom"
+                           Margin="8,0,0,2"
+                           Foreground="#8A9AAA"
+                           FontSize="12"
+                           Text="v1.0.0"/>
+                <TextBlock Text="桌面图标整理"
+                           FontSize="22"
+                           FontWeight="SemiBold"
+                           Foreground="#1A2433"/>
+            </DockPanel>
+            <TextBlock Text="在桌面创建分区方框，把图标拖进去集中管理。"
+                       Margin="0,6,0,0"
+                       Foreground="#5A6A7A"
+                       TextWrapping="Wrap"/>
+        </StackPanel>
+
+        <Border Grid.Row="1"
+                x:Name="UpdateBanner"
+                Margin="0,0,0,12"
+                Padding="12,10"
+                Background="#E8F1FF"
+                BorderBrush="#2F6FED"
+                BorderThickness="1"
+                CornerRadius="8"
+                Cursor="Hand"
+                Visibility="Collapsed"
+                MouseLeftButtonUp="UpdateBanner_Click">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Right"
+                           VerticalAlignment="Center"
+                           Foreground="#2F6FED"
+                           FontWeight="SemiBold"
+                           Text="查看 →"/>
+                <TextBlock x:Name="UpdateBannerText"
+                           VerticalAlignment="Center"
+                           Foreground="#1A4FA8"
+                           FontWeight="SemiBold"
+                           TextWrapping="Wrap"
+                           Text="发现新版本，点击查看更新内容"/>
+            </DockPanel>
+        </Border>
+
+        <Button Grid.Row="2"
+                x:Name="AddZoneButton"
+                Content="添加窗口"
+                Height="44"
+                FontSize="15"
+                FontWeight="SemiBold"
+                Cursor="Hand"
+                Click="AddZoneButton_Click">
+            <Button.Template>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd"
+                            Background="#2F6FED"
+                            CornerRadius="8"
+                            Padding="12,8">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          TextElement.Foreground="White"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="#255AD1"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="#1E4BB0"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+
+        <Border Grid.Row="3"
+                Margin="0,18,0,12"
+                Background="White"
+                CornerRadius="10"
+                BorderBrush="#D8E0EA"
+                BorderThickness="1"
+                Padding="14">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Text="使用说明"
+                               FontWeight="SemiBold"
+                               Foreground="#1A2433"
+                               Margin="0,0,0,8"/>
+                    <TextBlock Foreground="#4A5A6A" TextWrapping="Wrap" LineHeight="22"
+                               Text="1. 点击「添加窗口」，桌面会生成一个约 2cm×2cm 的正方形分区。&#10;2. 拖动标题栏可移动方框；拖动边缘或四角可随意调整长宽。&#10;3. 从桌面拖入的图标会自动从桌面隐藏，并出现在分区内。&#10;4. 右上角「小 / 中 / 大」切换尺寸；「锁」锁定位置。&#10;5. 右键「移出分区」会还原回桌面；删除分区也会还原。&#10;6. 隐藏面板后，点击右下角托盘图标可重新打开。"/>
+                    <TextBlock x:Name="StatusText"
+                               Margin="0,14,0,0"
+                               Foreground="#2F6FED"
+                               FontWeight="SemiBold"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <DockPanel Grid.Row="4">
+            <Button x:Name="ExitButton"
+                    DockPanel.Dock="Right"
+                    Content="退出程序"
+                    Padding="12,6"
+                    Margin="8,0,0,0"
+                    Cursor="Hand"
+                    Click="ExitButton_Click"/>
+            <Button x:Name="HideButton"
+                    DockPanel.Dock="Right"
+                    Content="隐藏面板"
+                    Padding="12,6"
+                    Cursor="Hand"
+                    Click="HideButton_Click"/>
+            <TextBlock VerticalAlignment="Center"
+                       Foreground="#7A8A9A"
+                       FontSize="12"
+                       Text="隐藏后点右下角托盘图标可重新打开。"/>
+        </DockPanel>
+    </Grid>
+</Window>
