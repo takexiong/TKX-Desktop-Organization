@@ -41,7 +41,8 @@ dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=
    - 把 `DesktopOrganizer.csproj` 里的 `Version` 改成新版本（如 `1.0.1`）
    - 重新 `dotnet publish ...`
    - 在 GitHub 创建 Release，**Tag** 写成 `v1.0.1`（需与版本号对应）
-   - 上传资源文件，文件名保持为 **`塔克熊桌面整理工具.exe`**
+   - 上传资源文件，文件名保持为 **`TakexiongDesktopOrganizer.exe`**
+     （GitHub Release 资源名不支持中文；本地发布文件仍可以是 `塔克熊桌面整理工具.exe`）
    - Release 正文会显示在更新确认窗口里
 
 程序启动后会自动检查；有新版本时主界面出现蓝色提示条，点击后可查看更新内容并确认更新。
