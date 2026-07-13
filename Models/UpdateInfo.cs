@@ -9,4 +9,5 @@ public sealed class UpdateInfo
     public required string DownloadUrl { get; init; }
     public required string AssetName { get; init; }
     public string? HtmlUrl { get; init; }
+    public IReadOnlyList<string> MirrorUrls { get; init; } = [];
 }
