@@ -27,7 +27,7 @@
                            Margin="8,0,0,2"
                            Foreground="#8A9AAA"
                            FontSize="12"
-                           Text="v1.0.4"/>
+                           Text="v1.0.5"/>
                 <TextBlock Text="塔克熊桌面整理工具"
                            FontSize="22"
                            FontWeight="SemiBold"
