@@ -3,9 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="塔克熊桌面整理工具"
         Icon="pack://application:,,,/app.ico"
-        Height="440"
+        Height="560"
         Width="420"
-        MinHeight="360"
+        MinHeight="480"
         MinWidth="360"
         WindowStartupLocation="CenterScreen"
         Background="#F4F7FB">
@@ -15,6 +15,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
@@ -26,7 +27,7 @@
                            Margin="8,0,0,2"
                            Foreground="#8A9AAA"
                            FontSize="12"
-                           Text="v1.0.3"/>
+                           Text="v1.0.4"/>
                 <TextBlock Text="塔克熊桌面整理工具"
                            FontSize="22"
                            FontWeight="SemiBold"
@@ -117,7 +118,7 @@
             </ScrollViewer>
         </Border>
 
-        <DockPanel Grid.Row="4">
+        <DockPanel Grid.Row="4" Margin="0,0,0,12">
             <Button x:Name="ExitButton"
                     DockPanel.Dock="Right"
                     Content="退出程序"
@@ -143,5 +144,35 @@
                        FontSize="12"
                        Text="隐藏后点右下角托盘图标可重新打开。"/>
         </DockPanel>
+
+        <StackPanel Grid.Row="5">
+            <TextBlock Text="广告推广"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       Foreground="#8A9AAA"
+                       Margin="0,0,0,6"/>
+            <Border Background="White"
+                    BorderBrush="#D8E0EA"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="12,10">
+                <StackPanel>
+                    <TextBlock FontSize="13" TextWrapping="Wrap">
+                        <Hyperlink NavigateUri="https://www.douyin.com/user/MS4wLjABAAAAuEfrV_64mSp628bfiRNwKK9xoqVsAXA-Ww1YbqMciLE"
+                                   RequestNavigate="PromoLink_RequestNavigate">作者抖音</Hyperlink>
+                        <Run Text="    "/>
+                        <Hyperlink NavigateUri="https://space.bilibili.com/20619490?spm_id_from=333.1007.0.0"
+                                   RequestNavigate="PromoLink_RequestNavigate">作者B站</Hyperlink>
+                        <Run Text="    "/>
+                        <Hyperlink NavigateUri="https://www.wanjiadongli.com/"
+                                   RequestNavigate="PromoLink_RequestNavigate">游戏模组</Hyperlink>
+                    </TextBlock>
+                    <TextBlock Margin="0,8,0,0"
+                               FontSize="12"
+                               Foreground="#5A6A7A"
+                               Text="交流群 963196878  1002403051"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
     </Grid>
 </Window>
