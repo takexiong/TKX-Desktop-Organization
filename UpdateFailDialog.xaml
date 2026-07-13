@@ -1,0 +1,53 @@
+<Window x:Class="DesktopOrganizer.UpdateFailDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="检查更新失败"
+        Icon="pack://application:,,,/app.ico"
+        Height="280"
+        Width="440"
+        MinHeight="240"
+        MinWidth="380"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F4F7FB"
+        ShowInTaskbar="False">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0">
+            <TextBlock x:Name="ErrorText"
+                       Foreground="#1A2433"
+                       TextWrapping="Wrap"
+                       LineHeight="22"
+                       Margin="0,0,0,12"/>
+            <TextBlock Foreground="#4A5A6A"
+                       TextWrapping="Wrap"
+                       LineHeight="22"
+                       Margin="0,0,0,8"
+                       Text="常见原因是无法访问 GitHub。可到下面地址手动下载："/>
+            <TextBlock Margin="0,0,0,12">
+                <Hyperlink NavigateUri="https://github.com/takexiong/TKX-Desktop-Organization/releases"
+                           RequestNavigate="Link_RequestNavigate">
+                    https://github.com/takexiong/TKX-Desktop-Organization/releases
+                </Hyperlink>
+            </TextBlock>
+            <TextBlock Foreground="#1A2433"
+                       TextWrapping="Wrap"
+                       LineHeight="22"
+                       FontWeight="SemiBold"
+                       Text="Q群 963196878 群文件提供最新版本"/>
+        </StackPanel>
+
+        <Button Grid.Row="1"
+                HorizontalAlignment="Right"
+                Content="确定"
+                Padding="18,7"
+                IsDefault="True"
+                IsCancel="True"
+                Cursor="Hand"
+                Click="OkButton_Click"/>
+    </Grid>
+</Window>
