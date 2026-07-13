@@ -2,6 +2,11 @@
 chcp 65001 >nul
 cd /d "%~dp0"
 
+if exist "%~dp0publish\塔克熊桌面整理工具.exe" (
+  start "" "%~dp0publish\塔克熊桌面整理工具.exe"
+  exit /b 0
+)
+
 if exist "%~dp0publish_fix\塔克熊桌面整理工具.exe" (
   start "" "%~dp0publish_fix\塔克熊桌面整理工具.exe"
   exit /b 0

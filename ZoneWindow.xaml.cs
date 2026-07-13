@@ -70,7 +70,7 @@ public partial class ZoneWindow : Window
     private void ReloadIcons()
     {
         IconPanel.Children.Clear();
-        var (iconPx, tile) = SizeHelper.GetPixels(Data.IconSize);
+        var iconPx = SizeHelper.GetIconPixels(Data.IconSize);
         var dpiScale = VisualTreeHelper.GetDpi(this).DpiScaleX;
 
         foreach (var item in Data.Icons.ToList())
@@ -78,12 +78,12 @@ public partial class ZoneWindow : Window
             if (!File.Exists(item.Path) && !Directory.Exists(item.Path))
                 continue;
 
-            var tileControl = CreateIconTile(item, iconPx, tile, dpiScale);
+            var tileControl = CreateIconTile(item, iconPx, dpiScale);
             IconPanel.Children.Add(tileControl);
         }
     }
 
-    private Border CreateIconTile(IconData item, int iconPx, int tileWidth, double dpiScale)
+    private Border CreateIconTile(IconData item, int iconPx, double dpiScale)
     {
         var image = new Image
         {
@@ -107,22 +107,26 @@ public partial class ZoneWindow : Window
             TextWrapping = TextWrapping.Wrap,
             FontSize = Data.IconSize == IconSizeMode.Small ? 10 : 11,
             Foreground = Brushes.White,
-            MaxWidth = tileWidth - 8,
-            Margin = new Thickness(4, 0, 4, 4)
+            Width = iconPx,
+            Margin = new Thickness(0, 0, 0, 4)
         };
 
         var stack = new StackPanel
         {
-            HorizontalAlignment = HorizontalAlignment.Center,
+            Width = iconPx,
+            HorizontalAlignment = HorizontalAlignment.Left,
             Children = { image, label }
         };
 
+        // 左右各分一半间距，两个图标之间正好 IconGap
+        var side = SizeHelper.IconGap / 2.0;
         var border = new Border
         {
-            Width = tileWidth,
-            Margin = new Thickness(2),
+            Width = iconPx,
+            Margin = new Thickness(side, 2, side, 2),
             Background = Brushes.Transparent,
             Cursor = Cursors.Hand,
+            HorizontalAlignment = HorizontalAlignment.Left,
             Child = stack,
             Tag = item,
             ToolTip = item.Path
