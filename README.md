@@ -33,21 +33,24 @@ dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=
 
 布局自动保存到 `%AppData%\DesktopOrganizer\config.json`。
 
-## 自动更新（GitHub Releases）
+## 自动更新
 
-1. 更新源仓库：`takexiong/TKX-Desktop-Organization`（见 `Services/UpdateSettings.cs`）
+程序会按顺序尝试：
 
-2. 发版时：
-   - 把 `DesktopOrganizer.csproj` 里的 `Version` 改成新版本（如 `1.0.1`）
-   - 重新 `dotnet publish ...`
-   - 在 GitHub 创建 Release，**Tag** 写成 `v1.0.1`（需与版本号对应）
-   - 上传资源文件，文件名保持为 **`TakexiongDesktopOrganizer.exe`**
-     （GitHub Release 资源名不支持中文；本地发布文件仍可以是 `塔克熊桌面整理工具.exe`）
-   - Release 正文会显示在更新确认窗口里
+1. `update.json` 清单（jsDelivr / gitmirror 等国内较稳的 CDN）
+2. GitHub Releases API（兜底）
+3. 下载时若是 GitHub 直链，会自动再试若干镜像
 
-程序启动后会自动检查；有新版本时主界面出现蓝色提示条，点击后可查看更新内容并确认更新。
+发版时请同时：
+
+1. 提高 `DesktopOrganizer.csproj` 的 `Version`
+2. 上传 `TakexiongDesktopOrganizer.exe` 到 GitHub Release
+3. 更新根目录 `update.json` 里的 version / downloadUrl / mirrors
+
+若仍不稳定，建议把 `update.json` 和安装包放到 **Gitee** 或 **阿里云 OSS**，并把 `Services/UpdateSettings.cs` 里的 `ManifestUrls` 第一项改成该地址。
 
 ## 说明
 
 - 框内是图标引用，**不会删除**桌面原文件
 - 关闭主窗口会隐藏控制面板，分区仍保留；点「退出程序」才完全关闭
+- 翻墙时请开启「系统代理」或 TUN，有助于访问 GitHub 源
