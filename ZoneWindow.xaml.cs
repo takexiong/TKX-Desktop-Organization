@@ -98,6 +98,8 @@ public partial class ZoneWindow : Window
         RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.HighQuality);
         RenderOptions.SetEdgeMode(image, EdgeMode.Unspecified);
 
+        var fontSize = Data.IconSize == IconSizeMode.Small ? 10.0 : 11.0;
+        var lineHeight = SizeHelper.LabelHeight / 2.0; // 固定两行，总高度约 60
         var label = new TextBlock
         {
             Text = string.IsNullOrWhiteSpace(item.DisplayName)
@@ -105,10 +107,18 @@ public partial class ZoneWindow : Window
                 : item.DisplayName,
             TextAlignment = TextAlignment.Center,
             TextWrapping = TextWrapping.Wrap,
-            FontSize = Data.IconSize == IconSizeMode.Small ? 10 : 11,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            FontSize = fontSize,
+            LineHeight = lineHeight,
+            LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
             Foreground = Brushes.White,
             Width = iconPx,
-            Margin = new Thickness(0, 0, 0, 4)
+            Height = SizeHelper.LabelHeight,
+            Margin = new Thickness(0),
+            VerticalAlignment = VerticalAlignment.Top,
+            ToolTip = string.IsNullOrWhiteSpace(item.DisplayName)
+                ? IconExtractor.GetDisplayName(item.Path)
+                : item.DisplayName
         };
 
         var stack = new StackPanel
@@ -118,15 +128,17 @@ public partial class ZoneWindow : Window
             Children = { image, label }
         };
 
-        // 左右各分一半间距，两个图标之间正好 IconGap
+        // 左右各分一半间距；上下高度固定（名称区恒为两行/60），不随文字变长
         var side = SizeHelper.IconGap / 2.0;
         var border = new Border
         {
             Width = iconPx,
+            Height = iconPx + 6 + SizeHelper.LabelHeight,
             Margin = new Thickness(side, 2, side, 2),
             Background = Brushes.Transparent,
             Cursor = Cursors.Hand,
             HorizontalAlignment = HorizontalAlignment.Left,
+            ClipToBounds = true,
             Child = stack,
             Tag = item,
             ToolTip = item.Path

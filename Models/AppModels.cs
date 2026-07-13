@@ -44,6 +44,9 @@ public static class SizeHelper
     /// <summary>左右相邻图标之间的间距（DIP）。</summary>
     public const int IconGap = 10;
 
+    /// <summary>图标下方名称区域固定高度（约两行文字）。</summary>
+    public const int LabelHeight = 60;
+
     public static int GetIconPixels(IconSizeMode mode) => mode switch
     {
         IconSizeMode.Small => 32,

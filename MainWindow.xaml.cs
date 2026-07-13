@@ -40,18 +40,45 @@ public partial class MainWindow : Window
         foreach (var zone in _config.Zones)
             OpenZone(zone, save: false);
         UpdateStatus();
-        _ = CheckForUpdatesAsync();
+        _ = CheckForUpdatesAsync(silent: true);
     }
 
-    private async Task CheckForUpdatesAsync()
+    private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e)
+    {
+        CheckUpdateButton.IsEnabled = false;
+        CheckUpdateButton.Content = "检查中…";
+        try
+        {
+            await CheckForUpdatesAsync(silent: false);
+        }
+        finally
+        {
+            CheckUpdateButton.IsEnabled = true;
+            CheckUpdateButton.Content = "检查更新";
+        }
+    }
+
+    private async Task CheckForUpdatesAsync(bool silent)
     {
         try
         {
-            // 稍等 UI 就绪，再安静检查，失败不打扰用户
-            await Task.Delay(1200);
+            if (silent)
+                await Task.Delay(1200);
+
             var update = await UpdateService.CheckForUpdateAsync();
             if (update is null)
+            {
+                if (!silent)
+                {
+                    MessageBox.Show(
+                        this,
+                        $"当前已是最新版本（v{UpdateService.CurrentVersionText}）。\n\n若刚发布了新版本，请稍后再试，或到 GitHub Releases 手动下载。",
+                        "塔克熊桌面整理工具",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
                 return;
+            }
 
             await Dispatcher.InvokeAsync(() =>
             {
@@ -60,14 +87,27 @@ public partial class MainWindow : Window
                     $"发现新版本 v{FormatVersion(update.Version)}，点击查看更新内容";
                 UpdateBanner.Visibility = Visibility.Visible;
             });
+
+            if (!silent)
+                ShowUpdateDialog();
         }
-        catch
+        catch (Exception ex)
         {
-            // 自动检查失败时静默忽略（网络/仓库未配置等）
+            if (!silent)
+            {
+                MessageBox.Show(
+                    this,
+                    $"检查更新失败：\n{ex.Message}\n\n常见原因是无法访问 GitHub。可到下面地址手动下载：\nhttps://github.com/takexiong/TKX-Desktop-Organization/releases",
+                    "塔克熊桌面整理工具",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
         }
     }
 
-    private void UpdateBanner_Click(object sender, MouseButtonEventArgs e)
+    private void UpdateBanner_Click(object sender, MouseButtonEventArgs e) => ShowUpdateDialog();
+
+    private void ShowUpdateDialog()
     {
         if (_pendingUpdate is null || _updateDialogOpen)
             return;

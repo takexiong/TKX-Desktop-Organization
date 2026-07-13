@@ -26,7 +26,7 @@
                            Margin="8,0,0,2"
                            Foreground="#8A9AAA"
                            FontSize="12"
-                           Text="v1.0.1"/>
+                           Text="v1.0.2"/>
                 <TextBlock Text="塔克熊桌面整理工具"
                            FontSize="22"
                            FontWeight="SemiBold"
@@ -108,7 +108,7 @@
                                Foreground="#1A2433"
                                Margin="0,0,0,8"/>
                     <TextBlock Foreground="#4A5A6A" TextWrapping="Wrap" LineHeight="22"
-                               Text="1. 点击「添加窗口」，桌面会生成一个约 2cm×2cm 的正方形分区。&#10;2. 拖动标题栏可移动方框；拖动边缘或四角可随意调整长宽。&#10;3. 从桌面拖入的图标会自动从桌面隐藏，并出现在分区内。&#10;4. 右上角「小 / 中 / 大」切换尺寸；「锁」锁定位置。&#10;5. 右键「移出分区」会还原回桌面；删除分区也会还原。&#10;6. 隐藏面板后，点击右下角托盘图标可重新打开。"/>
+                               Text="1. 点击「添加窗口」，桌面会生成一个约 2cm×2cm 的正方形分区。&#10;2. 拖动标题栏可移动方框；拖动边缘或四角可随意调整长宽。&#10;3. 从桌面拖入的图标会自动从桌面隐藏，并出现在分区内。&#10;4. 右上角「小 / 中 / 大」切换尺寸；「锁」锁定位置。&#10;5. 右键「移出分区」会还原回桌面；删除分区也会还原。&#10;6. 隐藏面板后，点击右下角托盘图标可重新打开。&#10;7. 有新版本时，标题下方会出现蓝色更新提示；也可点「检查更新」。"/>
                     <TextBlock x:Name="StatusText"
                                Margin="0,14,0,0"
                                Foreground="#2F6FED"
@@ -129,8 +129,15 @@
                     DockPanel.Dock="Right"
                     Content="隐藏面板"
                     Padding="12,6"
+                    Margin="8,0,0,0"
                     Cursor="Hand"
                     Click="HideButton_Click"/>
+            <Button x:Name="CheckUpdateButton"
+                    DockPanel.Dock="Right"
+                    Content="检查更新"
+                    Padding="12,6"
+                    Cursor="Hand"
+                    Click="CheckUpdateButton_Click"/>
             <TextBlock VerticalAlignment="Center"
                        Foreground="#7A8A9A"
                        FontSize="12"
