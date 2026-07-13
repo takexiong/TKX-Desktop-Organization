@@ -14,9 +14,9 @@
     <Authors>塔克熊</Authors>
     <Company>塔克熊</Company>
     <Description>塔克熊桌面整理工具 — Windows 桌面图标分区整理</Description>
-    <Version>1.0.2</Version>
-    <AssemblyVersion>1.0.2.0</AssemblyVersion>
-    <FileVersion>1.0.2.0</FileVersion>
+    <Version>1.0.3</Version>
+    <AssemblyVersion>1.0.3.0</AssemblyVersion>
+    <FileVersion>1.0.3.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
