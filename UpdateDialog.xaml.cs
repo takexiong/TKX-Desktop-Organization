@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using DesktopOrganizer.Models;
 using DesktopOrganizer.Services;
@@ -77,7 +77,7 @@ public partial class UpdateDialog : Window
             MessageBox.Show(
                 this,
                 $"下载更新失败：\n{ex.Message}\n\n请检查网络，或稍后到 GitHub Releases 手动下载。",
-                "桌面图标整理",
+                "塔克熊桌面整理工具",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
             ProgressText.Text = "下载失败，可重试。";

@@ -22,7 +22,7 @@ public partial class App : Application
         {
             MessageBox.Show(
                 $"发生错误，但程序会继续运行：\n{args.Exception.Message}",
-                "桌面图标整理",
+                "塔克熊桌面整理工具",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
             args.Handled = true;
@@ -33,8 +33,8 @@ public partial class App : Application
             if (args.ExceptionObject is Exception ex)
             {
                 MessageBox.Show(
-                    $"发生严重错误：\n{ex.Message}\n\n可在任务管理器结束“桌面图标整理”进程。",
-                    "桌面图标整理",
+                    $"发生严重错误：\n{ex.Message}\n\n可在任务管理器结束“塔克熊桌面整理工具”进程。",
+                    "塔克熊桌面整理工具",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }

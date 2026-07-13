@@ -7,11 +7,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
-    <ApplicationIcon />
-    <AssemblyName>桌面图标整理</AssemblyName>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <AssemblyName>塔克熊桌面整理工具</AssemblyName>
     <RootNamespace>DesktopOrganizer</RootNamespace>
-    <Product>桌面图标整理</Product>
-    <Description>Windows 桌面图标分区整理工具</Description>
+    <Product>塔克熊桌面整理工具</Product>
+    <Authors>塔克熊</Authors>
+    <Company>塔克熊</Company>
+    <Description>塔克熊桌面整理工具 — Windows 桌面图标分区整理</Description>
     <Version>1.0.0</Version>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
@@ -24,6 +26,11 @@
     <Using Remove="System.Drawing" />
     <Using Remove="System.Drawing.Imaging" />
     <Using Remove="System.Drawing.Printing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="app.ico" />
+    <None Include="LOGO.png" />
   </ItemGroup>
 
 </Project>

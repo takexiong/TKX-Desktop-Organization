@@ -7,6 +7,7 @@ namespace DesktopOrganizer.Services;
 public sealed class TrayService : IDisposable
 {
     private readonly NotifyIcon _notifyIcon;
+    private readonly Drawing.Icon _icon;
     private bool _disposed;
 
     public TrayService(Action showMain, Action addZone, Action exitApp)
@@ -17,11 +18,12 @@ public sealed class TrayService : IDisposable
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("退出程序", null, (_, _) => exitApp());
 
+        _icon = LoadAppIcon();
         _notifyIcon = new NotifyIcon
         {
             Visible = true,
-            Text = "桌面图标整理",
-            Icon = Drawing.SystemIcons.Application,
+            Text = "塔克熊桌面整理工具",
+            Icon = _icon,
             ContextMenuStrip = menu
         };
 
@@ -39,7 +41,7 @@ public sealed class TrayService : IDisposable
         if (_disposed)
             return;
 
-        _notifyIcon.BalloonTipTitle = "桌面图标整理";
+        _notifyIcon.BalloonTipTitle = "塔克熊桌面整理工具";
         _notifyIcon.BalloonTipText = tip;
         _notifyIcon.ShowBalloonTip(2000);
     }
@@ -52,5 +54,26 @@ public sealed class TrayService : IDisposable
         _disposed = true;
         _notifyIcon.Visible = false;
         _notifyIcon.Dispose();
+        _icon.Dispose();
+    }
+
+    private static Drawing.Icon LoadAppIcon()
+    {
+        try
+        {
+            var stream = System.Windows.Application.GetResourceStream(
+                new Uri("pack://application:,,,/app.ico"))?.Stream;
+            if (stream is not null)
+            {
+                using (stream)
+                    return new Drawing.Icon(stream);
+            }
+        }
+        catch
+        {
+            // 回退到系统默认图标
+        }
+
+        return (Drawing.Icon)Drawing.SystemIcons.Application.Clone();
     }
 }

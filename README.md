@@ -1,4 +1,6 @@
-# 桌面图标整理
+# 塔克熊桌面整理工具
+
+作者：**塔克熊**
 
 Windows 桌面分区整理工具：在桌面创建可拖动、可缩放的方框，把图标拖入框内集中管理。
 
@@ -6,7 +8,7 @@ Windows 桌面分区整理工具：在桌面创建可拖动、可缩放的方框
 
 双击 **`启动.bat`**，或双击：
 
-`publish\桌面图标整理.exe`
+`publish\塔克熊桌面整理工具.exe`
 
 （需已安装 [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/9.0)）
 
@@ -33,18 +35,13 @@ dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=
 
 ## 自动更新（GitHub Releases）
 
-1. 在 `Services/UpdateSettings.cs` 里填入你的公开仓库：
-
-```csharp
-public const string GitHubOwner = "你的用户名";
-public const string GitHubRepo = "仓库名";
-```
+1. 更新源仓库：`takexiong/TKX-Desktop-Organization`（见 `Services/UpdateSettings.cs`）
 
 2. 发版时：
    - 把 `DesktopOrganizer.csproj` 里的 `Version` 改成新版本（如 `1.0.1`）
    - 重新 `dotnet publish ...`
    - 在 GitHub 创建 Release，**Tag** 写成 `v1.0.1`（需与版本号对应）
-   - 上传资源文件，文件名保持为 **`桌面图标整理.exe`**
+   - 上传资源文件，文件名保持为 **`塔克熊桌面整理工具.exe`**
    - Release 正文会显示在更新确认窗口里
 
 程序启动后会自动检查；有新版本时主界面出现蓝色提示条，点击后可查看更新内容并确认更新。

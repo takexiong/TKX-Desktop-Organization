@@ -91,7 +91,7 @@ public partial class MainWindow : Window
                 MessageBox.Show(
                     this,
                     $"准备安装更新失败：\n{ex.Message}",
-                    "桌面图标整理",
+                    "塔克熊桌面整理工具",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
             }
@@ -162,7 +162,7 @@ public partial class MainWindow : Window
     {
         var result = MessageBox.Show(
             "确定退出？所有分区窗口将关闭（布局已自动保存，下次打开会恢复）。",
-            "桌面图标整理",
+            "塔克熊桌面整理工具",
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
 

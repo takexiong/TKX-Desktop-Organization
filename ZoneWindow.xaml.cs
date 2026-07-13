@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -169,7 +169,7 @@ public partial class ZoneWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"无法打开：{ex.Message}", "桌面图标整理", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show($"无法打开：{ex.Message}", "塔克熊桌面整理工具", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -273,7 +273,7 @@ public partial class ZoneWindow : Window
 
         var result = MessageBox.Show(
             "确定删除这个分区吗？\n\n已从桌面隐藏的图标会还原回桌面；非桌面拖入的引用只会从分区移除。",
-            "桌面图标整理",
+            "塔克熊桌面整理工具",
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
 
@@ -353,7 +353,7 @@ public partial class ZoneWindow : Window
             {
                 MessageBox.Show(
                     $"无法加入分区：{Path.GetFileName(file)}\n{ex.Message}",
-                    "桌面图标整理",
+                    "塔克熊桌面整理工具",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
             }
