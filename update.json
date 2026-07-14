@@ -2,7 +2,7 @@
   "version": "1.0.6",
   "tag": "v1.0.6",
   "title": "v1.0.6 塔克熊桌面整理工具",
-  "notes": "新增开机自启开关；拖入桌面图标可隐藏；托盘唤出、单实例、窗口锁定等稳定性与体验优化。",
+  "notes": "开机自启开关；图标左右间距 15px；名称固定两行正常行距。",
   "downloadUrl": "https://github.com/takexiong/TKX-Desktop-Organization/releases/download/v1.0.6/TakexiongDesktopOrganizer.exe",
   "mirrors": [
     "https://ghfast.top/https://github.com/takexiong/TKX-Desktop-Organization/releases/download/v1.0.6/TakexiongDesktopOrganizer.exe",
