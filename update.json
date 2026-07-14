@@ -1,12 +1,12 @@
 {
-  "version": "1.0.5",
-  "tag": "v1.0.5",
-  "title": "v1.0.5 塔克熊桌面整理工具",
-  "notes": "检查更新失败提示优化：GitHub 可点击超链接，并提示 Q群 963196878 群文件可下载最新版。",
-  "downloadUrl": "https://github.com/takexiong/TKX-Desktop-Organization/releases/download/v1.0.5/TakexiongDesktopOrganizer.exe",
+  "version": "1.0.6",
+  "tag": "v1.0.6",
+  "title": "v1.0.6 塔克熊桌面整理工具",
+  "notes": "新增开机自启开关；拖入桌面图标可隐藏；托盘唤出、单实例、窗口锁定等稳定性与体验优化。",
+  "downloadUrl": "https://github.com/takexiong/TKX-Desktop-Organization/releases/download/v1.0.6/TakexiongDesktopOrganizer.exe",
   "mirrors": [
-    "https://ghfast.top/https://github.com/takexiong/TKX-Desktop-Organization/releases/download/v1.0.5/TakexiongDesktopOrganizer.exe",
-    "https://gh-proxy.com/https://github.com/takexiong/TKX-Desktop-Organization/releases/download/v1.0.5/TakexiongDesktopOrganizer.exe"
+    "https://ghfast.top/https://github.com/takexiong/TKX-Desktop-Organization/releases/download/v1.0.6/TakexiongDesktopOrganizer.exe",
+    "https://gh-proxy.com/https://github.com/takexiong/TKX-Desktop-Organization/releases/download/v1.0.6/TakexiongDesktopOrganizer.exe"
   ],
-  "htmlUrl": "https://github.com/takexiong/TKX-Desktop-Organization/releases/tag/v1.0.5"
+  "htmlUrl": "https://github.com/takexiong/TKX-Desktop-Organization/releases/tag/v1.0.6"
 }

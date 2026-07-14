@@ -37,12 +37,48 @@ public partial class MainWindow : Window
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         VersionLabel.Text = $"v{UpdateService.CurrentVersionText}";
+        AutoStartService.RefreshPathIfEnabled();
+        RefreshAutoStartButton();
         _tray = new TrayService(ShowMainPanel, AddZone, RequestExitFromTray);
         _config = ConfigService.Load();
         foreach (var zone in _config.Zones)
             OpenZone(zone, save: false);
         UpdateStatus();
         _ = CheckForUpdatesAsync(silent: true);
+    }
+
+    private void AutoStartButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var enable = !AutoStartService.IsEnabled();
+            AutoStartService.SetEnabled(enable);
+            RefreshAutoStartButton();
+            MessageBox.Show(
+                this,
+                enable
+                    ? "已开启开机自启。\n下次登录 Windows 时会自动启动本工具。"
+                    : "已关闭开机自启。",
+                "塔克熊桌面整理工具",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                this,
+                $"设置开机自启失败：\n{ex.Message}",
+                "塔克熊桌面整理工具",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            RefreshAutoStartButton();
+        }
+    }
+
+    private void RefreshAutoStartButton()
+    {
+        var on = AutoStartService.IsEnabled();
+        AutoStartButton.Content = on ? "开机自启：已开启（点击关闭）" : "开机自启：已关闭（点击开启）";
     }
 
     private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e)

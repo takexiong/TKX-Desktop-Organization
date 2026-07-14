@@ -1,19 +1,14 @@
-﻿@echo off
+@echo off
 chcp 65001 >nul
 cd /d "%~dp0"
-
-if exist "%~dp0publish\塔克熊桌面整理工具.exe" (
-  start "" "%~dp0publish\塔克熊桌面整理工具.exe"
-  exit /b 0
-)
 
 if exist "%~dp0publish_fix\塔克熊桌面整理工具.exe" (
   start "" "%~dp0publish_fix\塔克熊桌面整理工具.exe"
   exit /b 0
 )
 
-if exist "%~dp0publish_new\塔克熊桌面整理工具.exe" (
-  start "" "%~dp0publish_new\塔克熊桌面整理工具.exe"
+if exist "%~dp0publish_fix\桌面图标整理.exe" (
+  start "" "%~dp0publish_fix\桌面图标整理.exe"
   exit /b 0
 )
 

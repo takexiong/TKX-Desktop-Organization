@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -70,7 +70,7 @@ public partial class ZoneWindow : Window
     private void ReloadIcons()
     {
         IconPanel.Children.Clear();
-        var iconPx = SizeHelper.GetIconPixels(Data.IconSize);
+        var (iconPx, tile) = SizeHelper.GetPixels(Data.IconSize);
         var dpiScale = VisualTreeHelper.GetDpi(this).DpiScaleX;
 
         foreach (var item in Data.Icons.ToList())
@@ -78,12 +78,12 @@ public partial class ZoneWindow : Window
             if (!File.Exists(item.Path) && !Directory.Exists(item.Path))
                 continue;
 
-            var tileControl = CreateIconTile(item, iconPx, dpiScale);
+            var tileControl = CreateIconTile(item, iconPx, tile, dpiScale);
             IconPanel.Children.Add(tileControl);
         }
     }
 
-    private Border CreateIconTile(IconData item, int iconPx, double dpiScale)
+    private Border CreateIconTile(IconData item, int iconPx, int tileWidth, double dpiScale)
     {
         var image = new Image
         {
@@ -98,9 +98,6 @@ public partial class ZoneWindow : Window
         RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.HighQuality);
         RenderOptions.SetEdgeMode(image, EdgeMode.Unspecified);
 
-        var fontSize = SizeHelper.GetLabelFontSize(Data.IconSize);
-        var lineHeight = fontSize + 3;
-        var labelHeight = SizeHelper.GetLabelAreaHeight(Data.IconSize);
         var label = new TextBlock
         {
             Text = string.IsNullOrWhiteSpace(item.DisplayName)
@@ -108,38 +105,24 @@ public partial class ZoneWindow : Window
                 : item.DisplayName,
             TextAlignment = TextAlignment.Center,
             TextWrapping = TextWrapping.Wrap,
-            TextTrimming = TextTrimming.CharacterEllipsis,
-            FontSize = fontSize,
-            LineHeight = lineHeight,
-            LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
+            FontSize = Data.IconSize == IconSizeMode.Small ? 10 : 11,
             Foreground = Brushes.White,
-            Width = iconPx,
-            Height = labelHeight,
-            Margin = new Thickness(0),
-            VerticalAlignment = VerticalAlignment.Top,
-            ToolTip = string.IsNullOrWhiteSpace(item.DisplayName)
-                ? IconExtractor.GetDisplayName(item.Path)
-                : item.DisplayName
+            MaxWidth = tileWidth - 8,
+            Margin = new Thickness(4, 0, 4, 4)
         };
 
         var stack = new StackPanel
         {
-            Width = iconPx,
-            HorizontalAlignment = HorizontalAlignment.Left,
+            HorizontalAlignment = HorizontalAlignment.Center,
             Children = { image, label }
         };
 
-        // 左右间距固定；名称区刚好两行正常行距，不随文字变长撑开
-        var side = SizeHelper.IconGap / 2.0;
         var border = new Border
         {
-            Width = iconPx,
-            Height = iconPx + 6 + labelHeight,
-            Margin = new Thickness(side, 2, side, 2),
+            Width = tileWidth,
+            Margin = new Thickness(2),
             Background = Brushes.Transparent,
             Cursor = Cursors.Hand,
-            HorizontalAlignment = HorizontalAlignment.Left,
-            ClipToBounds = true,
             Child = stack,
             Tag = item,
             ToolTip = item.Path
@@ -186,7 +169,7 @@ public partial class ZoneWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"无法打开：{ex.Message}", "塔克熊桌面整理工具", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show($"无法打开：{ex.Message}", "桌面图标整理", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -290,7 +273,7 @@ public partial class ZoneWindow : Window
 
         var result = MessageBox.Show(
             "确定删除这个分区吗？\n\n已从桌面隐藏的图标会还原回桌面；非桌面拖入的引用只会从分区移除。",
-            "塔克熊桌面整理工具",
+            "桌面图标整理",
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
 
@@ -370,7 +353,7 @@ public partial class ZoneWindow : Window
             {
                 MessageBox.Show(
                     $"无法加入分区：{Path.GetFileName(file)}\n{ex.Message}",
-                    "塔克熊桌面整理工具",
+                    "桌面图标整理",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
             }
