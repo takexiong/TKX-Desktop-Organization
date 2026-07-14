@@ -70,7 +70,7 @@ public partial class ZoneWindow : Window
     private void ReloadIcons()
     {
         IconPanel.Children.Clear();
-        var (iconPx, tile) = SizeHelper.GetPixels(Data.IconSize);
+        var iconPx = SizeHelper.GetIconPixels(Data.IconSize);
         var dpiScale = VisualTreeHelper.GetDpi(this).DpiScaleX;
 
         foreach (var item in Data.Icons.ToList())
@@ -78,12 +78,12 @@ public partial class ZoneWindow : Window
             if (!File.Exists(item.Path) && !Directory.Exists(item.Path))
                 continue;
 
-            var tileControl = CreateIconTile(item, iconPx, tile, dpiScale);
+            var tileControl = CreateIconTile(item, iconPx, dpiScale);
             IconPanel.Children.Add(tileControl);
         }
     }
 
-    private Border CreateIconTile(IconData item, int iconPx, int tileWidth, double dpiScale)
+    private Border CreateIconTile(IconData item, int iconPx, double dpiScale)
     {
         var image = new Image
         {
@@ -98,31 +98,48 @@ public partial class ZoneWindow : Window
         RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.HighQuality);
         RenderOptions.SetEdgeMode(image, EdgeMode.Unspecified);
 
+        var fontSize = SizeHelper.GetLabelFontSize(Data.IconSize);
+        var lineHeight = fontSize + 3;
+        var labelHeight = SizeHelper.GetLabelAreaHeight(Data.IconSize);
+        var displayName = string.IsNullOrWhiteSpace(item.DisplayName)
+            ? IconExtractor.GetDisplayName(item.Path)
+            : item.DisplayName;
+
         var label = new TextBlock
         {
-            Text = string.IsNullOrWhiteSpace(item.DisplayName)
-                ? IconExtractor.GetDisplayName(item.Path)
-                : item.DisplayName,
+            Text = displayName,
             TextAlignment = TextAlignment.Center,
             TextWrapping = TextWrapping.Wrap,
-            FontSize = Data.IconSize == IconSizeMode.Small ? 10 : 11,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            FontSize = fontSize,
+            LineHeight = lineHeight,
+            LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
             Foreground = Brushes.White,
-            MaxWidth = tileWidth - 8,
-            Margin = new Thickness(4, 0, 4, 4)
+            Width = iconPx,
+            Height = labelHeight,
+            Margin = new Thickness(0),
+            VerticalAlignment = VerticalAlignment.Top,
+            ToolTip = displayName
         };
 
         var stack = new StackPanel
         {
-            HorizontalAlignment = HorizontalAlignment.Center,
+            Width = iconPx,
+            HorizontalAlignment = HorizontalAlignment.Left,
             Children = { image, label }
         };
 
+        // 左右各一半间距，合计 IconGap；名称区固定两行正常行距
+        var side = SizeHelper.IconGap / 2.0;
         var border = new Border
         {
-            Width = tileWidth,
-            Margin = new Thickness(2),
+            Width = iconPx,
+            Height = iconPx + 6 + labelHeight,
+            Margin = new Thickness(side, 2, side, 2),
             Background = Brushes.Transparent,
             Cursor = Cursors.Hand,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            ClipToBounds = true,
             Child = stack,
             Tag = item,
             ToolTip = item.Path
