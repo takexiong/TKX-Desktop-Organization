@@ -11,6 +11,8 @@ namespace DesktopOrganizer;
 
 public partial class ZoneWindow : Window
 {
+    private const string ZoneIconFormat = "DesktopOrganizer.ZoneIcon.v1";
+
     private readonly Action _onChanged;
     private readonly Action<ZoneWindow> _onClosed;
     private Point? _resizeStart;
@@ -18,6 +20,8 @@ public partial class ZoneWindow : Window
     private Point _resizeOriginPos;
     private string? _resizeEdge;
     private bool _suppressSave;
+    private Point? _iconDragStart;
+    private Border? _iconDragSource;
 
     public ZoneData Data { get; }
 
@@ -89,14 +93,15 @@ public partial class ZoneWindow : Window
         {
             Width = iconPx,
             Height = iconPx,
-            Stretch = Stretch.Uniform,
+            Stretch = Stretch.Fill,
             Source = IconExtractor.GetIcon(item.Path, iconPx, dpiScale),
             Margin = new Thickness(0, 4, 0, 2),
             SnapsToDevicePixels = true,
             UseLayoutRounding = true
         };
-        RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.HighQuality);
-        RenderOptions.SetEdgeMode(image, EdgeMode.Unspecified);
+        // 图标已按 DPI 对齐像素；NearestNeighbor 避免再被柔化缩放
+        RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.NearestNeighbor);
+        RenderOptions.SetEdgeMode(image, EdgeMode.Aliased);
 
         var fontSize = SizeHelper.GetLabelFontSize(Data.IconSize);
         var lineHeight = fontSize + 3;
@@ -145,13 +150,48 @@ public partial class ZoneWindow : Window
             ToolTip = item.Path
         };
 
-        border.MouseLeftButtonDown += (_, e) =>
+        border.PreviewMouseLeftButtonDown += (_, e) =>
         {
-            if (e.ClickCount == 2)
+            if (e.ClickCount >= 2)
             {
+                _iconDragStart = null;
+                _iconDragSource = null;
                 OpenTarget(item.Path);
                 e.Handled = true;
+                return;
             }
+
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                _iconDragStart = e.GetPosition(border);
+                _iconDragSource = border;
+            }
+        };
+
+        border.PreviewMouseMove += (_, e) =>
+        {
+            if (_iconDragStart is null
+                || !ReferenceEquals(_iconDragSource, border)
+                || e.LeftButton != MouseButtonState.Pressed)
+                return;
+
+            var pos = e.GetPosition(border);
+            if (Math.Abs(pos.X - _iconDragStart.Value.X) < SystemParameters.MinimumHorizontalDragDistance
+                && Math.Abs(pos.Y - _iconDragStart.Value.Y) < SystemParameters.MinimumVerticalDragDistance)
+                return;
+
+            _iconDragStart = null;
+            _iconDragSource = null;
+
+            var payload = new ZoneIconDragPayload(this, item);
+            var data = new DataObject(ZoneIconFormat, payload);
+            DragDrop.DoDragDrop(border, data, DragDropEffects.Move);
+        };
+
+        border.PreviewMouseLeftButtonUp += (_, _) =>
+        {
+            _iconDragStart = null;
+            _iconDragSource = null;
         };
 
         border.MouseEnter += (_, _) =>
@@ -186,7 +226,7 @@ public partial class ZoneWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"无法打开：{ex.Message}", "桌面图标整理", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show($"无法打开：{ex.Message}", "塔克熊桌面整理工具", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -348,6 +388,15 @@ public partial class ZoneWindow : Window
 
     private void Window_Drop(object sender, DragEventArgs e)
     {
+        if (e.Data.GetDataPresent(ZoneIconFormat)
+            && e.Data.GetData(ZoneIconFormat) is ZoneIconDragPayload payload)
+        {
+            var index = GetInsertIndex(e.GetPosition(IconPanel));
+            AcceptZoneIcon(payload, index);
+            e.Handled = true;
+            return;
+        }
+
         if (!e.Data.GetDataPresent(DataFormats.FileDrop))
             return;
 
@@ -370,7 +419,7 @@ public partial class ZoneWindow : Window
             {
                 MessageBox.Show(
                     $"无法加入分区：{Path.GetFileName(file)}\n{ex.Message}",
-                    "桌面图标整理",
+                    "塔克熊桌面整理工具",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
             }
@@ -381,6 +430,83 @@ public partial class ZoneWindow : Window
 
         ReloadIcons();
         NotifyChanged();
+        e.Handled = true;
+    }
+
+    private void AcceptZoneIcon(ZoneIconDragPayload payload, int insertIndex)
+    {
+        var item = payload.Item;
+        var source = payload.SourceZone;
+        if (item is null || source is null)
+            return;
+
+        if (ReferenceEquals(source, this))
+        {
+            var oldIndex = Data.Icons.IndexOf(item);
+            if (oldIndex < 0)
+                return;
+
+            Data.Icons.RemoveAt(oldIndex);
+            if (insertIndex > oldIndex)
+                insertIndex--;
+
+            insertIndex = Math.Clamp(insertIndex, 0, Data.Icons.Count);
+            if (insertIndex == oldIndex)
+            {
+                Data.Icons.Insert(oldIndex, item);
+                return;
+            }
+
+            Data.Icons.Insert(insertIndex, item);
+            ReloadIcons();
+            NotifyChanged();
+            return;
+        }
+
+        if (!source.Data.Icons.Remove(item))
+            return;
+
+        if (IsAlreadyInZone(item.Path)
+            || (!string.IsNullOrWhiteSpace(item.DesktopOriginPath)
+                && IsAlreadyInZone(item.DesktopOriginPath)))
+        {
+            source.Data.Icons.Add(item);
+            source.ReloadIcons();
+            return;
+        }
+
+        DesktopIconStore.RelocateToZone(item, Data.Id);
+        DesktopIconStore.CleanupZoneFolder(source.Data.Id);
+
+        insertIndex = Math.Clamp(insertIndex, 0, Data.Icons.Count);
+        Data.Icons.Insert(insertIndex, item);
+
+        source.ReloadIcons();
+        source.NotifyChangedPublic();
+        ReloadIcons();
+        NotifyChanged();
+    }
+
+    public void NotifyChangedPublic() => NotifyChanged();
+
+    private int GetInsertIndex(Point posInPanel)
+    {
+        for (var i = 0; i < IconPanel.Children.Count; i++)
+        {
+            if (IconPanel.Children[i] is not FrameworkElement fe)
+                continue;
+
+            var topLeft = fe.TransformToAncestor(IconPanel).Transform(new Point(0, 0));
+            var bounds = new Rect(topLeft, new Size(Math.Max(1, fe.ActualWidth), Math.Max(1, fe.ActualHeight)));
+
+            if (posInPanel.Y < bounds.Top)
+                return i;
+
+            if (posInPanel.Y <= bounds.Bottom && posInPanel.X < bounds.Left + bounds.Width / 2)
+                return i;
+        }
+
+        return IconPanel.Children.Count;
     }
 
     private bool IsAlreadyInZone(string file)
@@ -404,10 +530,23 @@ public partial class ZoneWindow : Window
 
     private void Window_DragOver(object sender, DragEventArgs e)
     {
+        if (e.Data.GetDataPresent(ZoneIconFormat))
+        {
+            e.Effects = DragDropEffects.Move;
+            e.Handled = true;
+            return;
+        }
+
         e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop)
             ? DragDropEffects.Copy
             : DragDropEffects.None;
         e.Handled = true;
+    }
+
+    private sealed class ZoneIconDragPayload(ZoneWindow sourceZone, IconData item)
+    {
+        public ZoneWindow SourceZone { get; } = sourceZone;
+        public IconData Item { get; } = item;
     }
 
     private void Resize_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

@@ -127,6 +127,36 @@ public static class DesktopIconStore
         }
     }
 
+    /// <summary>跨分区移动时，把已隐藏的文件迁到目标分区目录。</summary>
+    public static void RelocateToZone(IconData item, string newZoneId)
+    {
+        if (item is null || !item.HiddenFromDesktop)
+            return;
+
+        try
+        {
+            if (!File.Exists(item.Path) && !Directory.Exists(item.Path))
+                return;
+
+            var destDir = Path.Combine(StoreRoot, newZoneId);
+            Directory.CreateDirectory(destDir);
+            TryHideDirectory(StoreRoot);
+            TryHideDirectory(destDir);
+
+            var currentDir = Path.GetDirectoryName(item.Path);
+            if (string.Equals(currentDir, destDir, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            var destPath = MakeUniquePath(Path.Combine(destDir, Path.GetFileName(item.Path)));
+            MoveItem(item.Path, destPath);
+            item.Path = destPath;
+        }
+        catch
+        {
+            // 迁移失败则保留原路径，避免丢失
+        }
+    }
+
     private static IEnumerable<string> GetDesktopFolders()
     {
         var list = new List<string>();

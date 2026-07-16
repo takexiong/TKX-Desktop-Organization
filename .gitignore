@@ -1,25 +1,29 @@
-# Build
+## .NET
 bin/
 obj/
 publish/
-publish_*/
-publish_new/
 publish_fix/
+publish_new/
 *.user
 *.suo
+*.userosscache
+*.sln.docstates
 .vs/
 
-# Syncthing temp
-~syncthing~*
-*.tmp
-
-# Local release copies
+## Build outputs
 *.exe
-!app.ico
+*.dll
+*.pdb
+*.cache
+!启动.bat
 
-# OS
+## OS / editor
 Thumbs.db
 Desktop.ini
+.DS_Store
+*.swp
+*~
 
-# Syncthing conflict leftovers
-*.sync-conflict-*
+## Local / secrets
+.env
+*.local.json

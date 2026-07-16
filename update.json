@@ -1,12 +1,12 @@
 {
-  "version": "1.0.6",
-  "tag": "v1.0.6",
-  "title": "v1.0.6 塔克熊桌面整理工具",
-  "notes": "开机自启开关；图标左右间距 15px；名称固定两行正常行距。",
-  "downloadUrl": "https://github.com/takexiong/TKX-Desktop-Organization/releases/download/v1.0.6/TakexiongDesktopOrganizer.exe",
+  "version": "1.0.7",
+  "tag": "v1.0.7",
+  "title": "v1.0.7 塔克熊桌面整理工具",
+  "notes": "支持分区内排序与跨窗口拖动图标；提升图标清晰度；左右间距 15px、名称两行。",
+  "downloadUrl": "https://github.com/takexiong/TKX-Desktop-Organization/releases/download/v1.0.7/TakexiongDesktopOrganizer.exe",
   "mirrors": [
-    "https://ghfast.top/https://github.com/takexiong/TKX-Desktop-Organization/releases/download/v1.0.6/TakexiongDesktopOrganizer.exe",
-    "https://gh-proxy.com/https://github.com/takexiong/TKX-Desktop-Organization/releases/download/v1.0.6/TakexiongDesktopOrganizer.exe"
+    "https://ghfast.top/https://github.com/takexiong/TKX-Desktop-Organization/releases/download/v1.0.7/TakexiongDesktopOrganizer.exe",
+    "https://gh-proxy.com/https://github.com/takexiong/TKX-Desktop-Organization/releases/download/v1.0.7/TakexiongDesktopOrganizer.exe"
   ],
-  "htmlUrl": "https://github.com/takexiong/TKX-Desktop-Organization/releases/tag/v1.0.6"
+  "htmlUrl": "https://github.com/takexiong/TKX-Desktop-Organization/releases/tag/v1.0.7"
 }
