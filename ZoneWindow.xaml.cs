@@ -99,9 +99,6 @@ public partial class ZoneWindow : Window
             SnapsToDevicePixels = true,
             UseLayoutRounding = true
         };
-        // 图标已按 DPI 对齐像素；NearestNeighbor 避免再被柔化缩放
-        RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.NearestNeighbor);
-        RenderOptions.SetEdgeMode(image, EdgeMode.Aliased);
 
         var fontSize = SizeHelper.GetLabelFontSize(Data.IconSize);
         var lineHeight = fontSize + 3;

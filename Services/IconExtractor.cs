@@ -12,28 +12,29 @@ namespace DesktopOrganizer.Services;
 public static class IconExtractor
 {
     /// <summary>
-    /// 按 DIP 显示尺寸与 DPI 提取图标，尽量做到 1:1 像素对齐，减少放大发糊。
+    /// 按 DIP 显示尺寸与 DPI 提取清晰图标（优先 Shell 高清图，避免 32px 被放大发糊）。
     /// </summary>
     public static ImageSource GetIcon(string path, int dipSize, double dpiScale = 1.0)
     {
-        dpiScale = Math.Max(dpiScale, 1.0);
-        // 目标物理像素：按 DPI 对齐，并上取到常见图标尺寸
-        var targetPixels = (int)Math.Round(dipSize * dpiScale, MidpointRounding.AwayFromZero);
-        targetPixels = SnapIconSize(Math.Clamp(targetPixels, 16, 256));
+        var pixelSize = Math.Clamp((int)Math.Ceiling(dipSize * Math.Max(dpiScale, 1.0)), 16, 256);
 
         try
         {
             if (string.IsNullOrWhiteSpace(path) || (!File.Exists(path) && !Directory.Exists(path)))
-                return GetFallback(targetPixels, dpiScale);
+                return GetFallback(pixelSize, dpiScale);
 
-            // 向 Shell 多要一档清晰度，再缩到目标像素（比直接放大更清晰）
-            var requestPixels = SnapIconSize(Math.Min(256, Math.Max(targetPixels, NextShellSize(targetPixels))));
-
-            if (TryGetShellBitmap(path, requestPixels, out var hBitmap) && hBitmap != IntPtr.Zero)
+            // 对 .lnk 直接用快捷方式路径，让 Shell 解析图标，更清晰也更准确
+            if (TryGetShellBitmap(path, pixelSize, out var hBitmap) && hBitmap != IntPtr.Zero)
             {
                 try
                 {
-                    return CreateSharpBitmap(hBitmap, targetPixels, dpiScale);
+                    var bmp = Imaging.CreateBitmapSourceFromHBitmap(
+                        hBitmap,
+                        IntPtr.Zero,
+                        Int32Rect.Empty,
+                        BitmapSizeOptions.FromEmptyOptions());
+                    bmp.Freeze();
+                    return bmp;
                 }
                 finally
                 {
@@ -41,14 +42,15 @@ public static class IconExtractor
                 }
             }
 
-            if (TryGetImageListIcon(path, targetPixels, dpiScale, out var imageListIcon) && imageListIcon is not null)
+            // 回退：从系统图像列表取大图标
+            if (TryGetImageListIcon(path, pixelSize, out var imageListIcon) && imageListIcon is not null)
                 return imageListIcon;
 
-            return GetFallback(targetPixels, dpiScale);
+            return GetFallback(pixelSize, dpiScale);
         }
         catch
         {
-            return GetFallback(targetPixels, dpiScale);
+            return GetFallback(pixelSize, dpiScale);
         }
     }
 
@@ -68,74 +70,6 @@ public static class IconExtractor
         }
     }
 
-    private static BitmapSource CreateSharpBitmap(IntPtr hBitmap, int targetPixels, double dpiScale)
-    {
-        var raw = Imaging.CreateBitmapSourceFromHBitmap(
-            hBitmap,
-            IntPtr.Zero,
-            Int32Rect.Empty,
-            BitmapSizeOptions.FromEmptyOptions());
-        raw.Freeze();
-        return NormalizeToDisplay(raw, targetPixels, dpiScale);
-    }
-
-    private static BitmapSource NormalizeToDisplay(BitmapSource raw, int targetPixels, double dpiScale)
-    {
-        BitmapSource sized = raw;
-        if (raw.PixelWidth != targetPixels || raw.PixelHeight != targetPixels)
-        {
-            var scaleX = (double)targetPixels / raw.PixelWidth;
-            var scaleY = (double)targetPixels / raw.PixelHeight;
-            var transformed = new TransformedBitmap(raw, new ScaleTransform(scaleX, scaleY));
-            transformed.Freeze();
-            sized = transformed;
-        }
-
-        // 写入正确 DPI，使 WPF 按 DIP 显示时尽量不再二次缩放
-        var dpi = 96.0 * dpiScale;
-        var bgra = new FormatConvertedBitmap(sized, PixelFormats.Bgra32, null, 0);
-        bgra.Freeze();
-
-        var width = Math.Min(targetPixels, bgra.PixelWidth);
-        var height = Math.Min(targetPixels, bgra.PixelHeight);
-        var stride = targetPixels * 4;
-        var pixels = new byte[stride * targetPixels];
-        bgra.CopyPixels(new Int32Rect(0, 0, width, height), pixels, stride, 0);
-
-        var result = BitmapSource.Create(
-            targetPixels,
-            targetPixels,
-            dpi,
-            dpi,
-            PixelFormats.Bgra32,
-            null,
-            pixels,
-            stride);
-        result.Freeze();
-        return result;
-    }
-
-    private static int SnapIconSize(int size)
-    {
-        ReadOnlySpan<int> sizes = [16, 20, 24, 32, 40, 48, 64, 80, 96, 128, 256];
-        foreach (var s in sizes)
-        {
-            if (size <= s)
-                return s;
-        }
-
-        return 256;
-    }
-
-    private static int NextShellSize(int size) => size switch
-    {
-        <= 16 => 32,
-        <= 32 => 48,
-        <= 48 => 64,
-        <= 64 => 128,
-        _ => 256
-    };
-
     private static bool TryGetShellBitmap(string path, int pixelSize, out IntPtr hBitmap)
     {
         hBitmap = IntPtr.Zero;
@@ -147,10 +81,10 @@ public static class IconExtractor
                 return false;
 
             var size = new SIZE { cx = pixelSize, cy = pixelSize };
-            // ICONONLY：图标；BIGGERSIZEOK：可用更大源图
+            // ICONONLY：只要图标不要缩略图；BIGGERSIZEOK：允许更大源再缩
             var hr = factory.GetImage(
                 size,
-                SIIGBF.SIIGBF_ICONONLY | SIIGBF.SIIGBF_BIGGERSIZEOK,
+                SIIGBF.SIIGBF_ICONONLY | SIIGBF.SIIGBF_BIGGERSIZEOK | SIIGBF.SIIGBF_RESIZETOFIT,
                 out hBitmap);
 
             Marshal.FinalReleaseComObject(factory);
@@ -163,28 +97,24 @@ public static class IconExtractor
         }
     }
 
-    private static bool TryGetImageListIcon(string path, int pixelSize, double dpiScale, out ImageSource? source)
+    private static bool TryGetImageListIcon(string path, int pixelSize, out ImageSource? source)
     {
         source = null;
         var shInfo = new SHFILEINFO();
-        var flags = SHGFI.SHGFI_SYSICONINDEX;
-        var attrs = 0u;
+        var flags = SHGFI.SHGFI_SYSICONINDEX | SHGFI.SHGFI_USEFILEATTRIBUTES;
+        var attrs = File.Exists(path) || Directory.Exists(path) ? 0u : FILE_ATTRIBUTE_NORMAL;
 
         var himlSys = SHGetFileInfo(path, attrs, ref shInfo, (uint)Marshal.SizeOf<SHFILEINFO>(), flags);
         if (himlSys == IntPtr.Zero && shInfo.iIcon == 0)
-        {
-            // 路径异常时再尝试按扩展名
-            flags |= SHGFI.SHGFI_USEFILEATTRIBUTES;
-            himlSys = SHGetFileInfo(path, FILE_ATTRIBUTE_NORMAL, ref shInfo, (uint)Marshal.SizeOf<SHFILEINFO>(), flags);
-            if (himlSys == IntPtr.Zero && shInfo.iIcon == 0)
-                return false;
-        }
+            return false;
 
-        // 尽量取更大图再缩，避免糊
-        var listSize = pixelSize <= 16 ? SHIL.SHIL_SMALL
-            : pixelSize <= 32 ? SHIL.SHIL_LARGE
-            : pixelSize <= 48 ? SHIL.SHIL_EXTRALARGE
-            : SHIL.SHIL_JUMBO;
+        var listSize = pixelSize switch
+        {
+            <= 16 => SHIL.SHIL_SMALL,
+            <= 32 => SHIL.SHIL_LARGE,
+            <= 48 => SHIL.SHIL_EXTRALARGE,
+            _ => SHIL.SHIL_JUMBO
+        };
 
         var iidImageList = typeof(IImageList).GUID;
         if (SHGetImageList((int)listSize, ref iidImageList, out var imageList) != 0 || imageList is null)
@@ -198,12 +128,11 @@ public static class IconExtractor
 
             try
             {
-                var raw = Imaging.CreateBitmapSourceFromHIcon(
+                source = Imaging.CreateBitmapSourceFromHIcon(
                     hIcon,
                     Int32Rect.Empty,
-                    BitmapSizeOptions.FromEmptyOptions());
-                raw.Freeze();
-                source = NormalizeToDisplay(raw, pixelSize, dpiScale);
+                    BitmapSizeOptions.FromWidthAndHeight(pixelSize, pixelSize));
+                source.Freeze();
                 return true;
             }
             finally
